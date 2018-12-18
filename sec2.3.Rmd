@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+
+#####Load mushroom sample dataset from UCI Machine Learning Repository 
+
+```{r}
+mushroom <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data", header=FALSE)
+
+#add names to the column 
+names(mushroom) <- c("cap-shape", "cap-surface", "cap-color", "bruises?", "odor","gill-attachment", "gill-spacing", "gill-size", "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring", "stalk-color-above-ring", "stalk-color-below-ring", "veil-type", "veil-color", "ring-number", "ring-type", "spore-print-color", "population", "habitat")
+
+#check for 4177 observations 
+nrow(mushroom)
+
+#confirm that there are no missing values 
+sum(is.na(mushroom)) 
+
+#summary of the data 
+head(mushroom)
+summary(mushroom)
+
+#add mushroom in a data frame 
+
+mushroomData <- data.frame(mushroom)
+```
+
+There are 2480 missing attribute values, all for attributes stalk-root. 
+
+#####Handling missing values 
+```{r}
+#colSums(is.na(mushroomData))
+#which(mushroomData == '?' , arr.ind =TRUE)
+```
+
+We can exclude missing values from analyses 
+
+```{r}
+mushroomData <- mushroomData[!(mushroomData$stalk.root == "?"),]
+#which(mushroomData== '?' , arr.ind =TRUE)
+mushroomData
+```
+
+#####Create a Naives Bayes Classifier using the e1071 package, using the sample function to split the data between 80% for training and 20% for testing. 
+
+```{r}
+#Load in dependencies 
+library(e1071) 
+model <- naiveBayes(cap.shape ~ ., data = mushroomData)
+summary(model)
+
+
+#library(caTools)
+#mushroomData$spl is a new col in our dataset 
+#head(mushroomData)
+#mushroomData$Spl = sample.split(mushroomData,SplitRatio = 0.8)
+#head(mushroomData)
+
+#Split the dataset 
+#train = subset(mushroomData, mushroomData$Spl == TRUE)
+#View(train)
+
+#test = subset(mushroomData, mushroomData$Spl == FALSE)
+#View(test)
+
+
+```
+
+#####Calculate the accuracy of the classifier both in-training and in-test 
+
+```{r}
+accuracy(test)
+accuracy(train)
+```
+
+
+#####Use table function to create a confusion matrix of predicted vs actual classes 
+
+```{r}
+confusionMatrix(train,test)
+```
+
+There will be 2 false neg produced by this model. 

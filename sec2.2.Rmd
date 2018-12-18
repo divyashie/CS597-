@@ -1,0 +1,80 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+
+#####Load abalone sample dataset from UCI Machine Learning Repository 
+
+```{r}
+abalone <- read.csv("http://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data", header=FALSE)
+
+#add names to the column 
+names(abalone) <- c("sex", "length", "diameter", "height", "weight.whole","weight.shucked", "weight.viscera", "weight.shell", "rings")
+
+#check for 4177 observations 
+nrow(abalone)
+
+#confirm that there are no missing values 
+sum(is.na(abalone)) 
+
+#summary of the data 
+head(abalone)
+```
+
+#####Remove all observations in the Infant category, keep in the male/female classes 
+
+```{r} 
+
+df <- data.frame(abalone)
+df
+
+df <- df[!(df$sex == "I"),]
+df
+```
+
+#####Using caret package, use createDataPartiton to perform an 80/20 test-train split (80% training, 20% testing)
+
+```{r}
+library(caret)
+set.seed(3456)
+
+trainIndex <- createDataPartition(df$sex, p = .8, list = FALSE, times = 1)
+head(trainIndex)
+
+abaloneTrain <- df[trainIndex,]
+abaloneTest <- df[-trainIndex,]
+
+```
+
+#####Fit a logistic regression using all feature variables via glm, and observe which predictors are relevant 
+
+```{r}
+library(ISLR)
+head(df)
+attach(df)
+attach(abaloneTrain)
+
+glm.fits = glm(sex~length + diameter + height + weight.whole + weight.shucked + weight.viscera + weight.shell + rings, data=df, family=binomial(link="logit"))
+summary(glm.fits)
+coef(glm.fits)
+
+glm.probs=predict(glm.fits,abaloneTrain,type="response")
+summary(glm.probs)
+```
+
+The predictors: weight.shucked, weight.whole, and rings. 
+
+#####Do the confidence intervals for the predictors contain 0 within the range? How does this relate to the null hypothesis? 
+No. If a 95% CI doesn't include 0, the p-value would be <0.05 which is the conventional cutoff for significance. 
+
+#####Use the confusion matrix function in caret to observe testing results, use a 50% cutoff to tag male/female. How does the accuracy compare to a random classifier ROC curve? 
+
+```{r}
+predicted <- data.frame(glm.probs)
+confusionMatrix(glm.fits, glm.probs, threshold = 0.5)
+plotROC()
+```
+
+
+

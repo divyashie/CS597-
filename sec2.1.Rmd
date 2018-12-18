@@ -1,0 +1,89 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+
+##### Load Sample dataset into R using a dataframe (df)
+
+```{r}
+library(MASS)
+library(ISLR)
+df <- data.frame(Boston)
+head(df)
+names(df)
+```
+#####Use lm to fit a regression between medv and lstat 
+
+```{r}
+attach(df)
+lm.fit = lm(medv~lstat)
+summary(lm.fit)
+names(lm.fit)
+coef(lm.fit)
+confint(lm.fit)
+```
+#####Plot the resulting fit and show a plot of fitted values vs. residuals 
+
+```{r}
+plot(lstat,medv, lwd=3, col="magenta")
+plot(predict(lm.fit), residuals(lm.fit))
+```
+
+There is a non-linear relationship between the predictor and the response 
+
+#####Use the predict function to calculate response values for lstat of 5, 10,15. Obtain the CI as well as prediction intervals for the results. Are they same? Why or why not? 
+
+```{r}
+predict(lm.fit,data.frame(lstat=(c(5,10,15))), interval="confidence")
+predict(lm.fit,data.frame(lstat=(c(5,10,15))), interval="prediction")
+```
+
+They are different values, because the different between a prediction interval and a confidence interval is the standard error (SE). The SE for a CI on a mean caters for the uncertainty due to sampling, while for a prediction interval it also caters for the variability of the individuals values around the predicted mean. Therefore, the SE for the prediction interval will be wider than that of the CI. 
+
+#####Modify the regression to include the lstat2 (as well lstat itself) and compare the R2 between linear and non-linear fit. Use ggplot2 and stat-smooth to plot the relationship 
+
+
+```{r}
+lm.fit2=lm(medv~lstat+I(lstat^2))
+summary(lm.fit2)
+anova(lm.fit,lm.fit2)
+par(mfrow=c(2,2))
+```
+
+The R2 value for: 
+linear fit -> 0.6407 
+non linear fit -> 0.6393 
+Basically, the non linear fit is less than the linear fit in comparaison. 
+
+```{r}
+plot(lm.fit2)
+```
+
+```{r}
+p11 <- ggplot(lm.fit, aes(x=medv, y=lstat)) + geom_point(shape=1) + geom_smooth(method=lm, se=FALSE)
+p11
+
+p12 <- ggplot(lm.fit2, aes(x=medv, y=lstat)) + geom_point(shape=1) + geom_smooth(method=lm, se=FALSE, col="red")
+p12
+```
+
+```{r}
+library(plotly)
+
+cols1 <- c("#ff8080", "#66b3ff")
+cols2 <- c("#ff4d4d", "#3399ff")
+
+ds <- data.frame(data = x, linear = lm.fit, quadratic = lm.fit2)
+
+p <- ggplot(ds, aes(x = data)) + 
+  geom_point(aes(y = Linear, color = "Linear"), size = 2, alpha = 0.5) + 
+  geom_point(aes(y = Quadratic, color = "Non Linear"), size = 2, alpha = 0.5) + 
+  stat_smooth(aes(x = data, y = Linear, linetype = "Linear Fit"), method = "lm", formula = y ~ x, se = F, size = 0.25, color = cols2[1]) + 
+  stat_smooth(aes(x = data, y = Quadratic, linetype = "Quadratic Fit"), method = "lm", formula = y ~ poly(x,2), se = F, size = 0.25, color = cols2[2]) + 
+  scale_color_manual(name = "Relationship", values = c(cols1[1], cols1[2])) + 
+  scale_linetype_manual(name = "Fit Type", values = c(2, 2)) + 
+  ggtitle("relationship between linear and non-linear fit")
+
+```
+
