@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+
+####Load the swiss sample dataset from the built-in datasets (data(swiss)) into R using a dataframe 
+
+```{r}
+library(caret)
+data("swiss")
+swiss <- data.frame(swiss)
+head(swiss)
+```
+
+#####Perform a basic 80/20 test-train split on the data 
+```{r}
+trainIndex <- createDataPartition(swiss$Fertility,time=1,p=0.8,list=FALSE)
+trainSwiss <- swiss[trainIndex,]
+testSwiss <-swiss[-trainIndex,]
+
+lm.fit <-lm(Fertility~.,data=swiss) #fitting a linear model
+summary(lm.fit)
+```
+#####What features are selected as relevant based on resulting t-statistics? What are the associated coefficient values for relevant features? 
+
+```{r}
+cat("Agriculture, Education, Catholic, Infant.Mortality are relevant featuers based on coefficients")
+```
+
+```{r}
+#Calculate mse 
+mean((test$Fertility-predict(lm.fit,testSwiss))^2)
+```
+
+#####Perform a lasso regression using the glmnet package from CRAN, specifying a vector of 100 values of lamda for tuning 
+
+```{r}
+matrix <- model.matrix(Fertility~., data=trainSwiss)[,-1]
+vector <- train$Fertility
+
+#lassso regularization 
+lasso <- glmnet(matrix,vector, alpha=1, lambda = seq(1,100,length=100)) 
+
+#Plotting results 
+par(mfrow=c(2,2))
+plot(lasso,label=TRUE)
+plot(lasso,xvar = "lambda",label=TRUE)
+plot(lasso,xvar = "dev",label=TRUE)
+```
+
+#####Use cross-validation (via cv.glmnet) to determine the min value for lambda. 
+
+```{r}
+cv.out <- cv.glmnet(matrix,vector,alpha=1)
+lambda.min <- cv.out$lambda.min 
+print(lambda.min)
+```
+#####Plot training MSE as a function of lambda 
+```{r}
+plot(cv.out)
+```
+#####Out-of-sample test set performance (using predict)
+
+```{r}
+lasso.predict <-predict(lasso,s=lambda.min,newx = model.matrix(Fertility~.,test)[,-1],type="response")
+mean((lasso.predict-test$Fertility)^2) #MSE for test 
+```
+
+#####How do the coefficients differ versus the regular linear model? 
+```{r}
+summary(lm.fit)
+summary(predict(lasso,s=lambda.min,type="coefficients"))
+```
+
+```{r}
+cat("Coefficients have decreased and one feature has been reduced to 0")
+```
+
+
+#####Has Lasso regression performed shrinkage, variable selection, or both? 
+```{r}
+cat("It has performed both!")
+```
+

@@ -1,0 +1,61 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+```{r}
+library(caret)
+library(glmnet)
+library(ggplot2)
+```
+
+
+##### Load mtcars sample dataset from the built-in datasets 
+```{r}
+data("mtcars")
+mtcars <- data.frame(mtcars)
+head(mtcars)
+
+mtcars$am <- factor(mtcars$am) #convert 'am' to factor variable 
+contrasts(mtcars$am)
+```
+
+#####Perform a basic 80/20 test-train split on the data, 
+```{r}
+mtcarsIndex <- createDataPartition(mtcars$mpg, times = 1, p=0.8, list=FALSE)
+trainCars <- mtcars[mtcarsIndex]
+testCars <- mtcars[-mtcarsIndex]
+```
+
+#####Fit a linear model with mpg as the target response
+```{r}
+lm.fit <- lm(mpg~.,data=mtcars)
+head(lm.fit)
+```
+
+```{r}
+mean((predict(lm.fit,testCars)-testCars$mpg)^2) #MSE value 
+```
+##### What features are selected as relevant based on resulting t-statistics? What are the associated coefficient values for relevant features? 
+
+```{r}
+summary(lm.fit)
+```
+```{r}
+cat("Wt feature is relevant with a coefficient of -3.4506")
+```
+
+#####Perform a ridge regression using the glmnet package from CRAN, specifying a vector of 100 values of lambda for tuning. Use cross-validation (via cv.glmnet) to determine the min value for lamda. 
+
+```{r}
+matrixData <- model.matrix(mpg~.,data=trainCars)[,-1]
+variable <- trainCars$mpg
+model.matrix(mpg~.,trainCars)
+```
+
+```{r}
+#perform rigid regression 
+grid <- seq(1,100,length=100)
+ridge <-glmnet(matrixData,variable,alpha=0, lambda=grid)
+```
+

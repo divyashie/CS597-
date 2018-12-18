@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+#####Load German Credit sample dataset from UCI Machine Learning Repository 
+
+```{r}
+GermanData <- read.csv(url("https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data-numeric"), header=FALSE) 
+
+#check for observations 
+nrow(GermanData)
+
+#confirm that there are no missing values 
+sum(is.na(GermanData)) 
+
+#summary of the data 
+summary(GermanData)
+
+#concatenating our output variable under the same 
+colnames(credit)[25] <- c("result")
+#converting the output variable to factor variable 
+credit[,"result"] <-factor(credit[,"result"])
+#checking credit 
+str(credit)
+#checking the encoding of output 
+contrasts(credit$result)
+```
+
+##### Use caret package to perform 80/20 test-train split, and obtain a training fit for a logistic model via the glm package.  
+```{r}
+library(caret)
+germanIndex = createDataPartition(credit$result, p = .8, list = FALSE, times = 1)
+head(germanIndex)
+
+#split data 
+trainGerman <- credit[germanIndex,]
+testGerman <- credit[-germanIndex,]
+
+```
+
+```{r}
+#fit model 
+glm.fit <- glm(result~.,data=trainGerman,family=binomial())
+print(glm.fit)
+
+#checking on probabilities 
+glm.prob <- predict(glm.fit,trainGerman,type="response")
+glm.predict[glm.prob>0.5] <- 2
+```
+
+```{r}
+#calculate mse 
+mse = mean((trainGerman$result != glm.predict))
+print(mse)
+#calculate training RMSE 
+print(sqrt(mse))
+#find r^2 value for training set 
+nullModel <- glm(result~1,data=trainGerman,family = binomial)
+rsq = 1- logLik(glm.fit)/logLik(nullModel)
+print(rsq)
+```
+
+#####Use trainControl and train functions to perform a k=10 fold cv fit of the same model, and obtain cv training MSE/RMSE and R^2 values. 
+
+```{r}
+trainctrl <- trainControl(method="cv",number=10)
+glm.fit1 <- train(result~.,data=trainGerman,method="glm",trControl=trainctrl,family=binomial)
+
+#predict probabilities of training dataset 
+glm.prob1 <- predict(glm.fit1,trainGerman,type="prob")
+glm.predict1 <- rep(1,nrow(trainGerman))
+glm.predict1[glm.prob1[2] >0.5] <-2
+```
+
+```{r}
+#calculating training mse 
+mean((trainGerman$result!=glm.predict1))
+#calculating training rmse 
+sqrt(mean((trainGerman$result!=glm.predict1))) 
+
+cat("In 10-fold, training mse/rmse are high than in the original fit")
+```
+
+#####How does the performance on the test set for the original and cv model compare? 
+
+```{r}
+#test on original model 
+testProb <- predict(glm.fit,testGerman, type="response")
+#convert probabilities 
+glm.predict.test <- rep(1,nrow(testGerman))
+glm.predict.test[testProb >0.5 ] <-2 
+
+#calculate training mse 
+mean((testGerman$result != glm.predict.test))
+
+#calculate training rmse 
+sqrt(mean((testGerman$result != glm.predict.test)))
+```
+
+```{r}
+#test on k-fold cv model 
+testProb <- predict(glm.fit1,testGerman, type="prob")
+#convert probabilities 
+glm.predict.test <- rep(1,nrow(testGerman))
+glm.predict.test[testProb >0.5 ] <-2 
+
+#calculate training mse 
+mean((testGerman$result != glm.predict.test))
+
+#calculate training rmse 
+sqrt(mean((testGerman$result != glm.predict.test)))
+
+cat("test performance is most likely similar for both models")
+```
+

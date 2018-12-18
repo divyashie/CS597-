@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Bhoj Rani Soopal 
+---
+
+#####Load Yacht Hydrodynamics sample dataset from UCI Machine Learning Repository 
+
+```{r}
+yacht_hydrodynamics <- read.csv(url("http://archive.ics.uci.edu/ml/machine-learning-databases/00243/yacht_hydrodynamics.data"), sep=" ") 
+
+#add names to the column 
+colnames(yacht_hydrodynamics) <- c('LongPos', 'PrismaticCoef', 'LengDispRatio', 'BeamDraughtRatio', 'LengthBeamRatio','FroudeNumber', 'ResResistance')
+
+#Check dataset
+head(yacht_hydrodynamics)
+
+#check for missing values 
+sum(!complete.cases(yacht_hydrodynamics)) 
+
+#remove rows, since we have missing data 
+yacht_hydrodynamics <- yacht_hydrodynamics[complete.cases(yacht_hydrodynamics),]
+
+summary(yacht_hydrodynamics)
+```
+
+
+#####Use the caret package to perform a 80/20 test-train split (via the createDataPartition Function)
+```{r}
+library(caret)
+
+yachtIndex <- createDataPartition(yacht_hydrodynamics$ResResistance, p = .8, list = FALSE, times = 1)
+head(yachtIndex)
+
+yachtTrain <- yacht_hydrodynamics[yachtIndex,]
+yachtTest <- yacht_hydrodynamics[-yachtIndex,]
+
+```
+
+#####What are the training MSE/RMSE? 
+```{r}
+#Fitting a linear model 
+lm.fit <- lm(ResResistance~., data=yachtTrain)
+
+#calculate mse
+mean((yachtTrain$ResResistance-predict(lm.fit,yachtTrain))^2, na.rm=TRUE)
+#calculate rmse
+sqrt(mean((yachtTrain$ResResistance-predict(lm.fit,yachtTrain))^2, na.rm=TRUE))
+#R^2 for the model 
+summary(lm.fit)
+
+```
+
+
+#####Use the caret package to perform a bootstrap from the full sample dataset with N=1000 samples for fitting a linear model (via trainControl method), resulting in a training MSE/RMSE and R^2 for each resample 
+
+```{r}
+library(caret)
+
+train_control <- trainControl(method="boot",number=1000)
+lm.fit1 <- train(ResResistance~., data=yachtTrain, trControl=train_control, method="glm")
+lm.fit1
+cat("avg training rmse for 1000 samples is 9.6 and training r^2 65.2")
+```
+#####Plot a histogram on RMSE values, and provide a mean RMSE and R^2 for the fit 
+
+```{r}
+#convert from list to a data frame 
+lm <- as.data.frame(lm.fit1$resample)
+#plot histogram 
+hist(lm$RMSE,main="Histogram for RMSE values",xlab="RMSE VALUES")
+```
+
+#####How do these values compare to the basic model? 
+
+```{r}
+cat("There is an increase in RMSE and a decrease in R^2 value compared to the original model")
+```
+
+
+#####How does the performance on the test set for the original and bootstrap model compare? 
+
+```{r}
+#original model 
+mean((yachtTest$ResResistance-predict(lm.fit,yachtTest))^2, na.rm=TRUE) #mse 
+sqrt(mean((yachtTest$ResResistance-predict(lm.fit,yachtTest))^2, na.rm=TRUE)) #rmse 
+
+#r^2 value 
+summary(lm.fit)
+cat("65.2")
+
+```
+
+```{r}
+#Bootstrap model 
+mean((yachtTest$ResResistance-predict(lm.fit1,yachtTest))^2, na.rm=TRUE) #mse 
+sqrt(mean((yachtTest$ResResistance-predict(lm.fit1,yachtTest))^2, na.rm=TRUE)) #rmse 
+
+#r^2 value 
+summary(lm.fit1)
+cat("same r^2")
+cat("no difference in performance")
+
+```
+
+
