@@ -1,2 +1,2 @@
-# CSP571
-data preparation and analysis 
+# Research at Wincom lab IIT
+
